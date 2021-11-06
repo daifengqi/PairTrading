@@ -2,8 +2,8 @@ classdef pairTradingSignal < handle
    properties
        startDateStr = '20180409';
        endDateStr = '20181009';
-       wr = 100;
-       ws = 30;
+       wr = 20;
+       ws = 15;
        validRatio = 0.8;
        entryPointBoundaryDefault = 1.96;
        sharedInformation;
@@ -193,12 +193,7 @@ classdef pairTradingSignal < handle
            validity = 1;
        end
        
-       % 方便直接通过loc的信息print出来对应的日期，pairs
-       function [dateStr,stockYName,stockXName] = getEntry(obj,dateLoc,YLoc,XLoc)
-           dateStr = obj.sharedInformation.dateStrList(dateLoc,:);
-           stockYName = obj.stockUniverse.shortName(YLoc);
-           stockXName = obj.stockUniverse.shortName(XLoc);
-       end
+       function [dateStr,stockYName,stockXName] = getEntry(
        
    end
    

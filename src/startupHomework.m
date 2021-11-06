@@ -14,17 +14,17 @@ set(groot, 'defaultFigurePaperPositionMode', 'auto')
 clear mclasses;
 
 %% path variables
-rootpath = fullfile('/Users/cescqi/Downloads/PHBS Lecture/21-22 Fall I/Software Engineering/HW/homeworkCode');
+rootpath = fullfile('D:\02PHBS_G2\m1\SE\Proj\PairTrading\src');
 addpath(fullfile(rootpath, 'sharedLibrary',  'utils'));
 addpath(genpath_exclude(rootpath, {'.git', '.ignore', 'data', 'results', 'serializedData', 'reports', 'doc', '+mclasses'}));
 
 STATICPARS = mclasses.staticParameters.StaticParameters;
 
 %% add CVX path (CAUTIOM: make sure CVX is installed OUTSIDE of the above rootpath directory)
-cvxPath = '/Users/cescqi/Downloads/PHBS Lecture/21-22 Fall I/Software Engineering/cvx/cvx';
-cd(cvxPath)
-%% cvx_setup '/Users/cescqi/Downloads/PHBS Lecture/21-22 Fall I/Software Engineering/cvx/cvx/cvx_license.p'
-cvx_setup
+% cvxPath = '/Users/cescqi/Downloads/PHBS Lecture/21-22 Fall I/Software Engineering/cvx/cvx';
+% cd(cvxPath)
+% %% cvx_setup '/Users/cescqi/Downloads/PHBS Lecture/21-22 Fall I/Software Engineering/cvx/cvx/cvx_license.p'
+% cvx_setup
 
 %% project directory
 PROJECTPATH = fullfile(rootpath);
