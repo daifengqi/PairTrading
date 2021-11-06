@@ -170,7 +170,9 @@ classdef pairTradingSignal < handle
        % 分析残差序列从而得到dislocation,zScore(长度为obj.wr),entryPointBoundary(事先设定好的)
        % expectedReturn,halfLife
        function validity = analyzeResidual(obj,residualSe)
-           validity = adftest(residualSe);
+%            validity = adftest(residualSe);
+           [notStationary,pValue,stat,cValue,reg] = adftest(residualSe);
+           validity = ~notStationary;
            if validity == 0
                return
            end
