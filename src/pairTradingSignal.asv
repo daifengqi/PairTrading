@@ -1,7 +1,7 @@
 classdef pairTradingSignal < handle
    properties
        startDateStr = '20190409';
-       endDateStr = '20200409';
+       endDateStr = '20181009';
        wr = 40;
        ws = 20;
        validRatio = 0.8;
@@ -149,7 +149,7 @@ classdef pairTradingSignal < handle
                alpha2 = 1;
            end
            obj.signals.beta(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc) = beta;
-           obj.signals.validForSmooth(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc) = beta;
+           
        end
        
        % 对于beta做平滑
