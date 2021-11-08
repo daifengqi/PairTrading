@@ -1,11 +1,15 @@
 classdef pairTradingSignal < handle
    properties
-       startDateStr = '20190409';
-       endDateStr = '20200409';
+       startDateStr;
+       endDateStr;
        wr = 40;
        ws = 20;
        validRatio = 0.8;
-       entryPointBoundaryDefault = 1.96;
+       entryPointBoundaryDefault = 1.8;
+       startDate;
+       startDateLoc;
+       endDate;
+       endDateLoc;
        sharedInformation;
        stockUniverse;
        signals;
@@ -13,7 +17,9 @@ classdef pairTradingSignal < handle
    end
     
    methods
-       function obj = pairTradingSignal()
+       function obj = pairTradingSignal(startDateStr,endDateStr)
+           obj.endDateStr=endDateStr;
+           obj.startDateStr=startDateStr;
            % TODO: pass args via config file
            % marketData
            marketData = mclasses.staticMarketData.BasicMarketLoader.getInstance();
@@ -28,8 +34,12 @@ classdef pairTradingSignal < handle
            endDate = datenum(obj.endDateStr,'yyyymmdd');
            tmp = find(allDates>=startDate);
            startDateLoc = tmp(1);
+           obj.startDateLoc =startDateLoc;
+           obj.startDate = allDates(startDateLoc);
            tmp = find(allDates<=endDate);
            endDateLoc = tmp(end);
+           obj.endDateLoc = endDateLoc;
+           obj.endDate = allDates(endDateLoc);
            loadPriceStartDateLoc = startDateLoc-obj.wr-obj.ws;
            obj.sharedInformation.dateList = allDates(loadPriceStartDateLoc:endDateLoc);
            obj.sharedInformation.dateStrList = allDateStr(loadPriceStartDateLoc:endDateLoc,:);
@@ -43,6 +53,7 @@ classdef pairTradingSignal < handle
            stockTradeDay = generalData.stock.tradeDayTable;
            stockTradeDay = stockTradeDay(loadPriceStartDateLoc:endDateLoc,stockLocation);
            obj.stockUniverse.stockFilter = (~stockST)&stockTradeDay;
+           obj.stockUniverse.stockLocList = stockLocation;
            obj.stockUniverse.windTicker = windTicker(stockLocation,:);
            obj.stockUniverse.shortName = shortName(stockLocation,:);
            obj.stockUniverse.numOfStock = length(stockLocation);
@@ -62,9 +73,10 @@ classdef pairTradingSignal < handle
        end
        
        function obj=calSignals(obj)
+           fprintf('calculating signals')
            for currDateLoc = obj.wr:obj.sharedInformation.numOfDate
+               disp(currDateLoc);
                for stockYLoc = 1:(obj.stockUniverse.numOfStock-1)
-                   disp(stockYLoc);
                    if ~obj.stockUniverse.stockFilter(currDateLoc,stockYLoc)
                        continue
                    end

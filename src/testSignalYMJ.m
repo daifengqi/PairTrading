@@ -1,6 +1,8 @@
-signal = pairTradingSignal();
-signal.calSignals();
+signalStruct = pairTradingSignal();
+signalStruct.calSignals();
 
+strategy = pairTradingStrategy([],'pairTradingStrategy');
+strategy.initialize(signalStruct);
 
 % propertyNames = {'validity','zScore','dislocation','expectedReturn',...
 %            'halfLife','entryPointBoundry','alpha','beta'};
