@@ -137,7 +137,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     stockYPosition = targetLongPairPosition(loc);
                     stockXLoc = currLongPairXLoc(loc);
                     stockXTicker = tickerName(stockXLoc);
-                    stockXPosition = floor(stockYPosition*abs(currLongPairXBeta(loc))/100)*100;
+                    stockXPosition = floor(stockYPosition*abs(currLongPairXBeta(loc))/100);
                     betaPlot = -currLongPairXBeta(loc);
                     % for hwk2 plot
                     zScoreSe = currZscore(stockYLoc,stockXLoc,:);
@@ -185,7 +185,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     stockYPosition = targetShortPairPosition(loc);
                     stockXLoc = currShortPairXLoc(loc);
                     stockXTicker = tickerName(stockXLoc);
-                    stockXPosition = floor(stockYPosition*abs(currShortPairXBeta(loc))/100)*100;
+                    stockXPosition = stockYPosition*abs(currShortPairXBeta(loc));
                     % for hwk2 plot
                     betaPlot = -currShortPairXBeta(loc);
                     zScoreSe = currZscore(stockYLoc,stockXLoc,:);

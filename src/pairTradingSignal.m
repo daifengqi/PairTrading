@@ -17,7 +17,7 @@ classdef pairTradingSignal < handle
    end
     
    methods
-       function obj = pairTradingSignal(startDateStr,endDateStr)
+       function obj = pairTradingSignal(startDateStr,endDateStr,sectorNum)
            obj.endDateStr=endDateStr;
            obj.startDateStr=startDateStr;
            % TODO: pass args via config file
@@ -45,7 +45,7 @@ classdef pairTradingSignal < handle
            obj.sharedInformation.dateStrList = allDateStr(loadPriceStartDateLoc:endDateLoc,:);
            obj.sharedInformation.numOfDate = length(obj.sharedInformation.dateList);
            % init universe 化工 简单起见，先选20个
-           financeSectorFilter = generalData.stock.sectorClassification.levelOne == 3;
+           financeSectorFilter = generalData.stock.sectorClassification.levelOne == sectorNum;
            stockLocation = find(sum(financeSectorFilter) > 1);
            stockLocation = stockLocation(1:20);
            stockST = generalData.stock.stTable;

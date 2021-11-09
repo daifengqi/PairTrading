@@ -1,22 +1,39 @@
 %% This file serves as a test script for the pairTrading strategy
+% start设置成20180901，20180903就不是valid了？？？
+startDateStr = '20180610';
+endDateStr = '20181010';
+sectorNum = 3;
 %% Create a director
 director = mclasses.director.HomeworkDirector([], 'homework_2');
 
 %% register strategy
 % parameters for director
 directorParameters = [];
-initParameters.startDate = datenum(2014, 5, 1);
-initParameters.endDate = datenum(2020, 8, 31);
+initParameters.startDate = datenum('20180903','yyyymmdd');
+initParameters.endDate = datenum(endDateStr,'yyyymmdd');
 director.initialize(initParameters);
-
 %% calculate signal
-signalStruct = pairTradingSignal('20180610','20181010');
+
+%% register strategy
+strategy = pairTradingStrategy(director.rootAllocator ,'pairTradingProj');
+% strategyParameters = mclasses.strategy.longOnly.configParameter(strategy);
+% strategyParameters.startDateStr = startDateStr;
+% strategyParameters.endDateStr = endDateStr;
+% strategyParameters.sectorNum = sectorNum;
+
+signalStruct = pairTradingSignal(startDateStr,endDateStr,sectorNum);
 signalStruct.calSignals();
 signalStruct;
 signalStruct.signals
-%% register strategy
-strategy = pairTradingStrategy(director.rootAllocator ,'pairTrading');
-strategy.initialize(signalStruct);
-for i = datenum('20180902','yyyymmdd'): datenum('20180930','yyyymmdd')
-    strategy.generateOrders(i);
-end
+
+% strategy.initialize(strategyParameters);
+strategy.prepareFields(signalStruct);
+% for i = datenum('20180902','yyyymmdd'): datenum('20180930','yyyymmdd')
+%     strategy.generateOrders(i);
+% end
+
+%% run strategies
+%load('/Users/lifangwen/Desktop/module4/software/homeworkCode/sharedData/mat/marketInfo_securities_china.mat')
+director.reset();
+director.run();
+director.displayResult();
