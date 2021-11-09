@@ -28,8 +28,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
         cutLoss=2;
         % 最多持有20天
         cutPeriod=20;
-        tmpStruct;
-        
+      
     end
     
     methods
@@ -254,7 +253,6 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
         
         % 每次开始前先check现有的持仓中有没有需要平仓的
         function checkHoldingPair(obj)
-            obj.tmpStruct.closeHoldingPair.orderList = [];
             % check obj.holdingPairStruct and see whether certain pair can
             % be closed by reason 
             % 获取当前的holdingPairStruct
@@ -272,7 +270,9 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
             % 2，cutLoss：达到止损的标准
             % 3，cutPeriod：持有时期过长，强制平仓
             % 4，目前这个pair已经不是valid了，直接平仓（signal那边需要check计算）
-            for pairRowLoc = 1:length(find(currHoldingPairStruct.pairID>0))
+            currHoldingPairLoc = find(currHoldingPairStruct.pairID>0);
+            for i = 1:length(currHoldingPairLoc)
+                pairRowLoc = currHoldingPairLoc(i);
                 plotFlag = 0;
                 stockYLoc = currHoldingPairStruct.stockYLoc(pairRowLoc,1);
                 stockXLoc = currHoldingPairStruct.stockXLoc(pairRowLoc,1);
@@ -319,12 +319,11 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     currPairBoundary = signals.entryPointBoundary(obj.currDateLoc,stockYLoc,stockXLoc);
                     stockYTicker = obj.signalStruct.stockUniverse.windTicker(stockYLoc);
                     stockXTicker = obj.signalStruct.stockUniverse.windTicker(stockXLoc);
-                    betaPlot = signal.sBeta(obj.currDateLoc,stockYLoc,stockXLoc);
-                    plotOrderClose(currPairZscoreSe,currPairBoundary,stockYTicker,stockXTicker,betaPlot);
+                    betaPlot = signals.sBeta(obj.currDateLoc,stockYLoc,stockXLoc);
+                    obj.plotOrderClose(currPairZscoreSe,currPairBoundary,obj.currDate,stockYTicker,stockXTicker,betaPlot);
                 end
                 
             end
-            orderList = obj.tmpStruct.closeHoldingPair.orderList;
         end
                     
         function updatePnL(obj)
@@ -365,13 +364,14 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
             tickerName = obj.signalStruct.stockUniverse.windTicker;
             adjPosition = zeros(1,length(tickerName));
             for i = 1:length(currPairLoc)
-                stockYLoc = obj.holdingPairStruct.stockYLoc(i,1);
-                stockYPosition = obj.holdingPairStruct.stockYPosition(i,1);
-                stockYOperate = obj.holdingPairStruct.stockYOperate(i,1);
+                loc = currPairLoc(i);
+                stockYLoc = obj.holdingPairStruct.stockYLoc(loc,1);
+                stockYPosition = obj.holdingPairStruct.stockYPosition(loc,1);
+                stockYOperate = obj.holdingPairStruct.stockYOperate(loc,1);
                 adjPosition(1,stockYLoc) = adjPosition(1,stockYLoc)+(stockYPosition*stockYOperate);
-                stockXLoc = obj.holdingPairStruct.stockXLoc(i,1);
-                stockXPosition = obj.holdingPairStruct.stockXPosition(i,1);
-                stockXOperate = obj.holdingPairStruct.stockXOperate(i,1);
+                stockXLoc = obj.holdingPairStruct.stockXLoc(loc,1);
+                stockXPosition = obj.holdingPairStruct.stockXPosition(loc,1);
+                stockXOperate = obj.holdingPairStruct.stockXOperate(loc,1);
                 adjPosition(1,stockXLoc) = adjPosition(1,stockXLoc)+(stockXPosition*stockXOperate);
             end
             obj.holdingStruct.position(obj.currDateLoc,:) = adjPosition;
@@ -388,7 +388,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
         function plotOrderClose(zScoreSe,boudary,currDate,stockYTicker,stockXTicker,betaPlot)
             figure();
             plot(squeeze(zScoreSe));
-            title(sprintf('%s long\n %s *%d*%s',datestr(currDate),stockYTicker{1},betaPlot,stockXTicker{1}));
+            title(sprintf('%s long\n %s *%d*%s',datestr(currDate,'yyyymmdd'),stockYTicker{1},betaPlot,stockXTicker{1}));
             set(gca,'XLim',[0 42]);
             hold on
             x=0:0.01:42;

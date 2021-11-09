@@ -15,7 +15,7 @@ director.initialize(initParameters);
 %% calculate signal
 
 %% register strategy
-strategy = pairTradingStrategy(director.rootAllocator ,'pairTradingProj1');
+
 % strategyParameters = mclasses.strategy.longOnly.configParameter(strategy);
 % strategyParameters.startDateStr = startDateStr;
 % strategyParameters.endDateStr = endDateStr;
@@ -27,6 +27,9 @@ signalStruct;
 signalStruct.signals
 
 % strategy.initialize(strategyParameters);
+strategy = pairTradingStrategy(director.rootAllocator ,'pairTradingProj1');
+strategyParameters = configParameter(strategy);
+strategy.initialize(strategyParameters);
 strategy.prepareFields(signalStruct);
 % marketData = mclasses.staticMarketData.BasicMarketLoader.getInstance();
 % generalData = marketData.getAggregatedDataStruct;
@@ -36,7 +39,6 @@ strategy.prepareFields(signalStruct);
 %         strategy.generateOrders(i);
 %     end
 % end
-
 %% run strategies
 %load('/Users/lifangwen/Desktop/module4/software/homeworkCode/sharedData/mat/marketInfo_securities_china.mat')
 director.reset();
