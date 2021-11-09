@@ -75,6 +75,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
         end
         
         function [orderList, delayList] = generateOrders(obj,currDate)
+            obj.currDate=currDate;
             % 计算一下最近的PnL，利用obj.holdingPairStruct+obj.currAvailableCapital
             obj.currDateLoc = find(ismember(obj.signalStruct.sharedInformation.dateList(obj.signalStruct.wr+obj.signalStruct.ws:end),obj.currDate));
             obj.updatePnL();
@@ -86,7 +87,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
             obj.checkHoldingPair();
             orderList = [];
             delayList = [];
-            obj.currDate=currDate;
+            
             % TODO: currAvailableCapital = initCapital - usedCapital
             currAvailableCapital = 500000;   
             numPairAvail = sum(obj.holdingPairStruct.pairID(:,1)==0);
@@ -102,7 +103,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
             [LongCodes,LongPosition,ShortCodes,ShortPosition] = obj.adjustPairCodePosition();
             % long side
             longAdjustOrder.operate = mclasses.asset.BaseAsset.ADJUST_LONG;
-            %longAdjustOrder.account = obj.accounts('stockAccount');
+            longAdjustOrder.account = obj.accounts('stockAccount');
             longAdjustOrder.price = obj.orderPriceType;
             longAdjustOrder.assetCode = LongCodes;
             longAdjustOrder.quantity = LongPosition;
@@ -111,7 +112,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
             delayList = [delayList, 1];
             % short side
             shortAdjustOrder.operate = mclasses.asset.BaseAsset.ADJUST_SHORT;
-            %shortAdjustOrder.account = obj.accounts('stockAccount');
+            shortAdjustOrder.account = obj.accounts('stockAccount');
             shortAdjustOrder.price = obj.orderPriceType;
             shortAdjustOrder.assetCode = ShortCodes;
             shortAdjustOrder.quantity = ShortPosition;
@@ -173,41 +174,13 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     pairIDrecent = pairIDrecent + 1;
                     loc = targetLongPairPositionLoc(i);
                     stockYLoc = currLongPairYLoc(loc);
-                    stockYTicker = tickerName(stockYLoc);
                     stockYPosition = targetLongPairPosition(loc);
                     stockXLoc = currLongPairXLoc(loc);
-                    stockXTicker = tickerName(stockXLoc);
                     stockXPosition = floor(stockYPosition*abs(currLongPairXBeta(loc))/100)*100;
-                    betaPlot = -currLongPairXBeta(loc);
                     pairER = currLongPairER(loc);
                     openPriceY = currLongPairYPrice(loc);
                     openPriceX = currLongPairXPrice(loc);
-                    % for hwk2 plot
-                    zScoreSe = currZscore(stockYLoc,stockXLoc,:);
-                    boudary = currUpPointBoundary(stockYLoc,stockXLoc);
-                    figure();
-                    plot(squeeze(zScoreSe));
-                    title(sprintf('%s long\n %s *%d*%s',datestr(obj.currDate),stockYTicker{1},betaPlot,stockXTicker{1}));
-                    set(gca,'XLim',[0 42]);
-                    hold on
-                    x=0:0.01:42;
-                    y1=boudary*ones(1,length(x));
-                    y2=-boudary*ones(1,length(x));
-                    plot(x,y1,'color','r','linewidth',2)
-                    plot(x,y2,'color','r','linewidth',2)                            
-                    hold off
                     
-                    % stockY是longSide，
-                    obj.LongCodes = [obj.LongCodes,stockYTicker];
-                    obj.LongPosition = [obj.LongPosition,stockYPosition];
-                    % TODO：把pair的postion等信息更新到obj.holdingPairStruct
-                    if -currLongPairXBeta(loc) > 0
-                        obj.LongCodes = [obj.LongCodes,stockXTicker];
-                        obj.LongPosition = [obj.LongPosition,stockXPosition];
-                    else
-                        obj.ShortCodes = [obj.ShortCodes,stockXTicker];
-                        obj.ShortPosition = [obj.ShortPosition,stockXPosition];
-                    end
                     % 更新holdingPairStruct里面的内容
                     pairIDempty = find(obj.holdingPairStruct.pairID==0);
                     pairRowLoc = pairIDempty(1);
@@ -249,40 +222,12 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     pairIDrecent = pairIDrecent + 1;
                     loc = targetShortPairPositionLoc(i);
                     stockYLoc = currShortPairYLoc(loc);
-                    stockYTicker = tickerName(stockYLoc);
                     stockYPosition = targetShortPairPosition(loc);
                     stockXLoc = currShortPairXLoc(loc);
-                    stockXTicker = tickerName(stockXLoc);
                     stockXPosition = floor(stockYPosition*abs(currShortPairXBeta(loc))/100)*100;
                     pairER = currShortPairER(loc);
                     openPriceY = currShortPairYPrice(loc);
                     openPriceX = currShortPairXPrice(loc);
-                    % for hwk2 plot
-                    betaPlot = -currShortPairXBeta(loc);
-                    zScoreSe = currZscore(stockYLoc,stockXLoc,:);
-                    boudary = currUpPointBoundary(stockYLoc,stockXLoc);
-                    figure();
-                    plot(squeeze(zScoreSe));
-                    title(sprintf('%s short\n %s %d*%s',datestr(obj.currDate),stockYTicker{1},betaPlot,stockXTicker{1}));
-                    set(gca,'XLim',[0 42]);
-                    hold on
-                    x=0:0.01:42;
-                    y1=boudary*ones(1,length(x));
-                    y2=-boudary*ones(1,length(x));
-                    plot(x,y1,'color','r','linewidth',2)
-                    plot(x,y2,'color','r','linewidth',2)                            
-                    hold off
-                    % stockY是shortSide，
-                    obj.ShortCodes = [obj.ShortCodes,stockYTicker];
-                    obj.ShortPosition = [obj.ShortPosition,stockYPosition];
-                    % TODO：把pair的postion等信息更新到obj.holdingPairStruct
-                    if -currShortPairXBeta(loc) > 0
-                        obj.ShortCodes = [obj.ShortCodes,stockXTicker];
-                        obj.ShortPosition = [obj.ShortPosition,stockXPosition];
-                    else
-                        obj.LongCodes = [obj.LongCodes,stockXTicker];
-                        obj.LongPosition = [obj.LongPosition,stockXPosition];
-                    end
                     % 更新holdingPairStruct里面的内容
                     pairIDempty = find(obj.holdingPairStruct.pairID==0);
                     pairRowLoc = pairIDempty(1);
@@ -372,8 +317,8 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 if plotFlag > 0
                     currPairZscoreSe = squeeze(currZscore(stockYLoc,stockXLoc,:));
                     currPairBoundary = signals.entryPointBoundary(obj.currDateLoc,stockYLoc,stockXLoc);
-                    stockYTicker = signals.stockUniverse.windTicker(stockYLoc);
-                    stockXTicker = signals.stockUniverse.windTicker(stockXLoc);
+                    stockYTicker = obj.signalStruct.stockUniverse.windTicker(stockYLoc);
+                    stockXTicker = obj.signalStruct.stockUniverse.windTicker(stockXLoc);
                     betaPlot = signal.sBeta(obj.currDateLoc,stockYLoc,stockXLoc);
                     plotOrderClose(currPairZscoreSe,currPairBoundary,stockYTicker,stockXTicker,betaPlot);
                 end
@@ -410,12 +355,30 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
         end
         
         function [LongCodes,LongPosition,ShortCodes,ShortPosition] = adjustPairCodePosition(obj)
-%             tickerName = obj.signalStruct.signals.
-%             obj.holding
-            LongCodes=1;
-            LongPosition=1;
-            ShortCodes=1;
-            ShortPosition=1;
+            % 初始化返回值
+            LongCodes = [];
+            LongPosition = [];
+            ShortCodes = [];
+            ShortPosition = [];
+            % 判断这一天是否有holdingPairStruct
+            currPairLoc = find(obj.holdingPairStruct.pairID>0);
+            tickerName = obj.signalStruct.stockUniverse.windTicker;
+            adjPosition = zeros(1,length(tickerName));
+            for i = 1:length(currPairLoc)
+                stockYLoc = obj.holdingPairStruct.stockYLoc(i,1);
+                stockYPosition = obj.holdingPairStruct.stockYPosition(i,1);
+                stockYOperate = obj.holdingPairStruct.stockYOperate(i,1);
+                adjPosition(1,stockYLoc) = adjPosition(1,stockYLoc)+(stockYPosition*stockYOperate);
+                stockXLoc = obj.holdingPairStruct.stockXLoc(i,1);
+                stockXPosition = obj.holdingPairStruct.stockXPosition(i,1);
+                stockXOperate = obj.holdingPairStruct.stockXOperate(i,1);
+                adjPosition(1,stockXLoc) = adjPosition(1,stockXLoc)+(stockXPosition*stockXOperate);
+            end
+            obj.holdingStruct.position(obj.currDateLoc,:) = adjPosition;
+            LongCodes = [LongCodes,tickerName(adjPosition>0)];
+            LongPosition = [LongPosition,adjPosition(adjPosition>0)];
+            ShortCodes = [ShortCodes,tickerName(adjPosition<0)];
+            ShortPosition = [ShortPosition,abs(adjPosition(adjPosition<0))];
         end
     end
     
