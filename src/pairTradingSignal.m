@@ -17,7 +17,7 @@ classdef PairTradingSignal < handle
    end
     
    methods
-       function obj = pairTradingSignal(startDateStr,endDateStr,sectorNum)
+       function obj = PairTradingSignal(startDateStr,endDateStr,sectorNum)
            obj.endDateStr=endDateStr;
            obj.startDateStr=startDateStr;
            % TODO: pass args via config file

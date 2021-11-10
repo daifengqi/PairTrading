@@ -1,0 +1,11 @@
+# 201809 one month
+performanceMeasure =
+  6×2 table
+              measure              performance
+    ___________________________    ___________
+    {'annualizedReturn(%)'    }        1.4906 
+    {'annualizedVolatility(%)'}       0.25877 
+    {'retVolRatio'            }        5.7601 
+    {'sharpeRatio'            }       -5.8331 
+    {'cumReturn(%)'           }       0.12742 
+    {'drawDown(%)'            }     -0.027837

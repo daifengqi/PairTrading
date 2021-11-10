@@ -27,7 +27,7 @@ director.initialize(initParameters);
 % signalStruct.signals
 
 % strategy.initialize(strategyParameters);
-strategy = pairTradingStrategy(director.rootAllocator ,'pairTradingProj1');
+strategy = PairTradingStrategy(director.rootAllocator ,'pairTradingProj');
 strategyParameters = configParameter(strategy);
 strategy.startDateStr = startDateStr;
 strategy.endDateStr = endDateStr;
