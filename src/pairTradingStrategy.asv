@@ -11,40 +11,44 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
         % 策略最多配置多少个pairs，方便后面初始化pairStruct
         maxNumOfPairs = 30;
         % 记录每对pair的信息，和holdingStruct不同，See Question5
+        % closedPairStruct用来记录已经close的order，close的当天会画图
+        % holdingPairStruct用来记录正在持有的order，每天开始前先check有无需要close的
+        % 根据holdingPairStruct计算得到每天的holdingStruct，即stockUniverse里面每个ticker对应的position
+        % 
         closedPairStruct;
         holdingPairStruct;
-        % 最新的一个pair的序号，每对pairTrading都有唯一的序号，记录在pairsStruct里面
+        % 最新的一个pair的序号，每对pairTrading都有唯一的序号
+        % 记录在holdingPairStruct和closedPairStruct里面
         recentPairID;
         gnOrderTmp;
+        % 目前的日期，是datenum
         currDate;
+        % 目前日期所在位置，这里loc相对于signalStruct.sharedInformation.dateList而言
         currDateLoc;
-%         LongPosition;
-%         ShortPosition;
-%         LongCodes;
-%         ShortCodes;
         flag=0;
         currPnL;
+        % TODO：目前计算的是当前zScore和zScoreAhead，不合理
+        % 止盈：当前的zScore比起openDate的zScore有cutWin倍标准差的时候止盈
+        % 止损同理
         cutWin=2;
         cutLoss=2;
-        % 最多持有20天
+        % 最多持有20天，currDateLoc-openDateLoc>cutPeriod的时候强制平仓
         cutPeriod=20;
-      
+        % 外部config
+        startDateStr;
+        endDateStr;
+        sectorNum;
+        
     end
     
     methods
         function obj = pairTradingStrategy(container, name)
             obj@mclasses.strategy.LFBaseStrategy(container, name);
-%             obj.LongPosition=[];
-%             obj.ShortPosition=[];
-%             obj.LongCodes=[];
-%             obj.ShortCodes=[];
-            obj.initCapital= 500000;
         end
         
-        function prepareFields(obj,signalStruct)
-%             obj@mclasses.strategy.LFBaseStrategy.initialize(params);
-%             obj.signalStruct = pairTradingSignal(obj.startDateStr,obj.endDateStr,obj.sectorNum);
-            obj.signalStruct = signalStruct;
+        function prepareFields(obj)
+            obj.signalStruct = pairTradingSignal(obj.startDateStr,obj.endDateStr,obj.sectorNum);
+            obj.signalStruct.calSignals();
             marketData = mclasses.staticMarketData.BasicMarketLoader.getInstance();
             generalData = marketData.getAggregatedDataStruct;
             orderPrice = generalData.stock.properties.(obj.orderPriceType);
@@ -270,9 +274,12 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
             % 2，cutLoss：达到止损的标准
             % 3，cutPeriod：持有时期过长，强制平仓
             % 4，目前这个pair已经不是valid了，直接平仓（signal那边需要check计算）
-            for i = 1:length(find(currHoldingPairStruct.pairID>0))
-                pairRowLoc = currHoldingPairStruct.pairID(i,1);
+            currHoldingPairLoc = find(currHoldingPairStruct.pairID>0);
+            for i = 1:length(currHoldingPairLoc)
+                pairRowLoc = currHoldingPairLoc(i);
                 plotFlag = 0;
+                openDateLoc = currHoldingPairStruct.openDateLoc(pairRowLoc,1);
+                openPeirodGap = obj.currDateLoc-openDateLoc;
                 stockYLoc = currHoldingPairStruct.stockYLoc(pairRowLoc,1);
                 stockXLoc = currHoldingPairStruct.stockXLoc(pairRowLoc,1);
                 stockYOperate = currHoldingPairStruct.stockYOperate(pairRowLoc,1);
@@ -288,15 +295,15 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     plotFlag = 1;
                 end
                 % 判断1和2
-
+                
                 pairZscoreEnd = currZscore(stockYLoc,stockXLoc,end);
-                pairZscoreEndAhead = currZscore(stockYLoc,stockXLoc,end-1);
+                pairZscoreOpen = currZscore(stockYLoc,stockXLoc,end-openPeirodGap);
                 % 判断是long的话，
                 if stockYOperate > 0
-                    if pairZscoreEnd-pairZscoreEndAhead>obj.cutWin
+                    if pairZscoreEnd-pairZscoreOpen>obj.cutWin
                         obj.holdingPairToClosedPair(pairRowLoc,1);
                         plotFlag = 1;
-                    elseif pairZscoreEnd-pairZscoreEndAhead<-obj.cutLoss
+                    elseif pairZscoreEnd-pairZscoreOpen<-obj.cutLoss
                         obj.holdingPairToClosedPair(pairRowLoc,2);
                         plotFlag = 1;
                     
@@ -304,10 +311,10 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 end
                 % 判断是short的话，
                 if stockYOperate < 0
-                    if pairZscoreEnd-pairZscoreEndAhead<-obj.cutWin
+                    if pairZscoreEnd-pairZscoreOpen<-obj.cutWin
                         obj.holdingPairToClosedPair(pairRowLoc,1)
                         plotFlag = 1;
-                    elseif pairZscoreEnd-pairZscoreEndAhead>obj.cutLoss
+                    elseif pairZscoreEnd-pairZscoreOpen>obj.cutLoss
                         obj.holdingPairToClosedPair(pairRowLoc,2)
                         plotFlag = 1;
                     end
@@ -319,7 +326,7 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     stockYTicker = obj.signalStruct.stockUniverse.windTicker(stockYLoc);
                     stockXTicker = obj.signalStruct.stockUniverse.windTicker(stockXLoc);
                     betaPlot = signals.sBeta(obj.currDateLoc,stockYLoc,stockXLoc);
-                    obj.plotOrderClose(currPairZscoreSe,currPairBoundary,obj.currDate,stockYTicker,stockXTicker,betaPlot);
+                    obj.plotOrderClose(currPairZscoreSe,currPairBoundary,openPeirodGap,obj.currDate,stockYTicker,stockXTicker,betaPlot);
                 end
                 
             end
@@ -384,17 +391,21 @@ classdef pairTradingStrategy<mclasses.strategy.LFBaseStrategy
     methods(Static)
         % 用于画出平仓时的图
         % TODO:画买入卖出的点
-        function plotOrderClose(zScoreSe,boudary,currDate,stockYTicker,stockXTicker,betaPlot)
+        function plotOrderClose(zScoreSe,boudary,openPeirodGap,currDate,stockYTicker,stockXTicker,betaPlot)
+            seLen = length(zScoreSe);
+            seXspace = 1:seLen;
             figure();
             plot(squeeze(zScoreSe));
             title(sprintf('%s long\n %s *%d*%s',datestr(currDate,'yyyymmdd'),stockYTicker{1},betaPlot,stockXTicker{1}));
-            set(gca,'XLim',[0 42]);
+            set(gca,'XLim',[0 seLen+2]);
             hold on
-            x=0:0.01:42;
+            x=0:0.01:length(zScoreSe)+2;
             y1=boudary*ones(1,length(x));
             y2=-boudary*ones(1,length(x));
             plot(x,y1,'color','r','linewidth',2)
-            plot(x,y2,'color','r','linewidth',2)                            
+            plot(x,y2,'color','r','linewidth',2)
+            plot(seXspace(end-openPeirodGap),zScoreSe(end-openPeirodGap),'.','MarkerSize',16);
+            plot(seXspace(end),zScoreSe(end),'.','MarkerSize',16);
             hold off
         end
     end

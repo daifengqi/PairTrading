@@ -1,4 +1,4 @@
-classdef pairTradingSignal < handle
+classdef PairTradingSignal < handle
    properties
        startDateStr;
        endDateStr;
@@ -75,7 +75,6 @@ classdef pairTradingSignal < handle
        function obj=calSignals(obj)
            fprintf('calculating signals')
            for currDateLoc = obj.wr:obj.sharedInformation.numOfDate
-               disp(currDateLoc);
                for stockYLoc = 1:(obj.stockUniverse.numOfStock-1)
                    if ~obj.stockUniverse.stockFilter(currDateLoc,stockYLoc)
                        continue
@@ -88,6 +87,7 @@ classdef pairTradingSignal < handle
                    end
                end
            end
+           fprintf('signals calculated')
        end
        
        function obj=calSignal(obj,currDateLoc,stockYLoc,stockXLoc)

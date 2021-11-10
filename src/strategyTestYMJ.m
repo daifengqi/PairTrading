@@ -1,7 +1,9 @@
 %% This file serves as a test script for the pairTrading strategy
 % start设置成20180901，20180903就不是valid了？？？
+warning('off','all')
+warning
 startDateStr = '20180610';
-endDateStr = '20181210';
+endDateStr = '20181010';
 sectorNum = 3;
 %% Create a director
 director = mclasses.director.HomeworkDirector([], 'homework_2');
@@ -17,20 +19,21 @@ director.initialize(initParameters);
 %% register strategy
 
 % strategyParameters = mclasses.strategy.longOnly.configParameter(strategy);
-% strategyParameters.startDateStr = startDateStr;
-% strategyParameters.endDateStr = endDateStr;
-% strategyParameters.sectorNum = sectorNum;
 
-signalStruct = pairTradingSignal(startDateStr,endDateStr,sectorNum);
-signalStruct.calSignals();
-signalStruct;
-signalStruct.signals
+
+% signalStruct = pairTradingSignal(startDateStr,endDateStr,sectorNum);
+% signalStruct.calSignals();
+% signalStruct;
+% signalStruct.signals
 
 % strategy.initialize(strategyParameters);
 strategy = pairTradingStrategy(director.rootAllocator ,'pairTradingProj1');
 strategyParameters = configParameter(strategy);
+strategy.startDateStr = startDateStr;
+strategy.endDateStr = endDateStr;
+strategy.sectorNum = sectorNum;
 strategy.initialize(strategyParameters);
-strategy.prepareFields(signalStruct);
+strategy.prepareFields();
 % marketData = mclasses.staticMarketData.BasicMarketLoader.getInstance();
 % generalData = marketData.getAggregatedDataStruct;
 % allDates = generalData.sharedInformation.allDates;

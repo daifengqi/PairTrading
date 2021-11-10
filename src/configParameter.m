@@ -10,6 +10,7 @@ parameter.orderPriceType = 'close';
 account = mclasses.account.StockAccount(strategy, 'stockAccount');
 account.initialize(parameter.initCapital );
 accounts = {account};
+author = 'Lethe';
 
 end
 
