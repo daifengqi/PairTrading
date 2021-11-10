@@ -14,9 +14,9 @@ classdef PairTradingSignal < handle
        endDateLoc;
        % 所有的数据date都是从loadPriceStartDateLoc:endDateLoc
        loadPriceStartDateLoc;
-       sharedInformation;
-       stockUniverse;
-       signals;
+       sharedInformation; % 存的date
+       stockUniverse; % 价格信息，tikerName
+       signals; % struct！！！
        calSignalTmp;
    end
     
@@ -66,7 +66,7 @@ classdef PairTradingSignal < handle
            obj.stockUniverse.fwd_close = fwd_close(loadPriceStartDateLoc:endDateLoc,stockLocation);
            % init signals=(date,stockY,stockX,properties)
            obj.sharedInformation.propertyNames = {'validity','validForSmooth','dislocation','expectedReturn',...
-           'halfLife','entryPointBoundary','beta','sBeta','zScoreSe'};
+           'halfLife','entryPointBoundary','beta','sBeta','mu','sigma','zScoreSe'};
            for i = 1:size(obj.sharedInformation.propertyNames,2)-1
                obj.signals.(obj.sharedInformation.propertyNames{1,i}) = zeros(obj.sharedInformation.numOfDate,...
                    obj.stockUniverse.numOfStock,obj.stockUniverse.numOfStock);
@@ -78,7 +78,7 @@ classdef PairTradingSignal < handle
            
        end
        
-       function obj=calSignals(obj)
+       function calSignals(obj)
            fprintf('calculating signals')
            for currDateLoc = obj.wr:obj.sharedInformation.numOfDate
                for stockYLoc = 1:(obj.stockUniverse.numOfStock-1)
@@ -96,7 +96,7 @@ classdef PairTradingSignal < handle
            fprintf('signals calculated')
        end
        
-       function obj=calSignal(obj,currDateLoc,stockYLoc,stockXLoc)
+       function calSignal(obj,currDateLoc,stockYLoc,stockXLoc)
            % 每一步都有需要检验并更改validity的部分
            obj.calSignalTmp.currDateLoc = currDateLoc;
            obj.calSignalTmp.stockYLoc = stockYLoc;
@@ -211,6 +211,8 @@ classdef PairTradingSignal < handle
            obj.signals.zScoreSe(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc,:)=zScoreSe;
            obj.signals.halfLife(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc)=halfLife;
            obj.signals.expectedReturn(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc)=expectedReturn;
+           obj.signals.mu(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc)=mu;
+           obj.signals.sigma(obj.calSignalTmp.currDateLoc,obj.calSignalTmp.stockYLoc,obj.calSignalTmp.stockXLoc)=sigma;
            validity = 1;
        end
        

@@ -1,49 +1,37 @@
 %% This file serves as a test script for the pairTrading strategy
-% start设置成20180901，20180903就不是valid了？？？
+
 warning('off','all')
 warning
-startDateStr = '20180610';
-endDateStr = '20181010';
-sectorNum = 3;
+startDateStr = '20190510';
+endDateStr = '20191010';
+sectorNum = 31;
 %% Create a director
 director = mclasses.director.HomeworkDirector([], 'homework_2');
 
 %% register strategy
 % parameters for director
 directorParameters = [];
-initParameters.startDate = datenum('20180903','yyyymmdd');
+initParameters.startDate = datenum(startDateStr,'yyyymmdd');
 initParameters.endDate = datenum(endDateStr,'yyyymmdd');
 director.initialize(initParameters);
 %% calculate signal
 
 %% register strategy
 
-% strategyParameters = mclasses.strategy.longOnly.configParameter(strategy);
-
-
-% signalStruct = pairTradingSignal(startDateStr,endDateStr,sectorNum);
-% signalStruct.calSignals();
-% signalStruct;
-% signalStruct.signals
-
-% strategy.initialize(strategyParameters);
-strategy = PairTradingStrategy(director.rootAllocator ,'pairTradingProj');
+strategy = PairTradingStrategy(director.rootAllocator ,'pairTradingProj1');
 strategyParameters = configParameter(strategy);
+% 设置参数
 strategy.startDateStr = startDateStr;
 strategy.endDateStr = endDateStr;
 strategy.sectorNum = sectorNum;
 strategy.initialize(strategyParameters);
+% 计算signal
 strategy.prepareFields();
-% marketData = mclasses.staticMarketData.BasicMarketLoader.getInstance();
-% generalData = marketData.getAggregatedDataStruct;
-% allDates = generalData.sharedInformation.allDates;
-% for i = datenum('20180903','yyyymmdd'): datenum('20181210','yyyymmdd')
-%     if find(ismember(allDates,i))
-%         strategy.generateOrders(i);
-%     end
-% end
+
 %% run strategies
 %load('/Users/lifangwen/Desktop/module4/software/homeworkCode/sharedData/mat/marketInfo_securities_china.mat')
 director.reset();
+% strategy 每天更新orderList，给director执行，并记录每个pair的PnL，平仓时会自动画出pair的表现情况
 director.run();
+% 利用老师回测平台，得到策略的效果，放一张return的图，后续同学会详细解释
 director.displayResult();

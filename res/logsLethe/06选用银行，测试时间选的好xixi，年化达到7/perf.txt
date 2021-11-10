@@ -1,0 +1,10 @@
+performanceMeasure =
+  6×2 table
+              measure              performance
+    ___________________________    ___________
+    {'annualizedReturn(%)'    }       7.2927  
+    {'annualizedVolatility(%)'}       2.3661  
+    {'retVolRatio'            }       3.0821  
+    {'sharpeRatio'            }       1.8142  
+    {'cumReturn(%)'           }       2.9863  
+    {'drawDown(%)'            }     -0.45145 

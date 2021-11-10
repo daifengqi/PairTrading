@@ -1,0 +1,16 @@
+
+startDateStr = '20190610';
+endDateStr = '20191010';
+sectorNum = 3;
+stockLocation(1:20);
+
+performanceMeasure =
+  6×2 table
+              measure              performance
+    ___________________________    ___________
+    {'annualizedReturn(%)'    }      0.84487  
+    {'annualizedVolatility(%)'}       1.5426  
+    {'retVolRatio'            }       0.5477  
+    {'sharpeRatio'            }      -1.3971  
+    {'cumReturn(%)'           }      0.28314  
+    {'drawDown(%)'            }     -0.45642  
