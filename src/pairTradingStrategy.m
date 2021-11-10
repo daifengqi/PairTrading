@@ -75,7 +75,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 obj.closedPairStruct.(obj.closedPairStruct.description{i})=[];
             end
             % TODO 给closeReason设置对应的说明
-%             obj.closedPairStruct.closeReasonDescription = struct(1,'cut win',2,'cut loss',3,'is not valid')
+            obj.closedPairStruct.closeReasonDescription = {'cutWin','cutLoss','cutPeriod','notValid'};
         end
         
         function [orderList, delayList] = generateOrders(obj,currDate)
@@ -265,7 +265,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             for i = 1:length(currHoldingPairLoc)
                 pairRowLoc = currHoldingPairLoc(i);
                 openDateLoc = obj.holdingPairStruct.openDateLoc(pairRowLoc,1);
-                openPeirodGap = obj.currDateLoc-openDateLoc+1;
+                openPeirodGap = obj.currDateLoc-openDateLoc;
                 stockYLoc = obj.holdingPairStruct.stockYLoc(pairRowLoc,1);
                 stockXLoc = obj.holdingPairStruct.stockXLoc(pairRowLoc,1);
                 openPriceY = obj.holdingPairStruct.openPriceY(pairRowLoc,1);
@@ -303,7 +303,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 pairRowLoc = currHoldingPairLoc(i);
                 plotFlag = 0;
                 openDateLoc = currHoldingPairStruct.openDateLoc(pairRowLoc,1);
-                openPeirodGap = obj.currDateLoc-openDateLoc+1;
+                openPeirodGap = obj.currDateLoc-openDateLoc;
                 stockYLoc = currHoldingPairStruct.stockYLoc(pairRowLoc,1);
                 stockXLoc = currHoldingPairStruct.stockXLoc(pairRowLoc,1);
                 pairValidity = currValidity(stockYLoc,stockXLoc);
@@ -311,11 +311,11 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 % 先判断 3和4
                 if obj.currDate-openDateNum>obj.cutPeriod
                     obj.holdingPairToClosedPair(pairRowLoc,3);
-                    plotFlag = 1;
+                    plotFlag = 3;
                 end
                 if ~pairValidity
                     obj.holdingPairToClosedPair(pairRowLoc,4);
-                    plotFlag = 1;
+                    plotFlag = 4;
                 end
                 % 判断1和2
                 % 判断是long的话，
@@ -328,17 +328,24 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 end
                 if currPairPnLSe(currPnLLoc) < obj.cutLoss
                     obj.holdingPairToClosedPair(pairRowLoc,2);
-                    plotFlag = 1;
+                    plotFlag = 2;
                 end
                 % 判断是否需要画图
                 % 画出从openDate开始的PnL的图
                 if plotFlag > 0
+                    stockYOperate = currHoldingPairStruct.stockYOperate(pairRowLoc,1);
+                    if stockYOperate > 0
+                        pairOperate = 'long';
+                    else
+                        pairOperate = 'short';
+                    end
                     stockYTicker = obj.signalStruct.stockUniverse.windTicker(stockYLoc);
                     stockXTicker = obj.signalStruct.stockUniverse.windTicker(stockXLoc);
                     betaPlot = signals.sBeta(openDateLoc,stockYLoc,stockXLoc);
                     dateStr = datestr(obj.currDate,'yyyymmdd');
                     cutBoundary = [obj.cutWin,obj.cutLoss];
-                    obj.plotOrderClose(currPairPnLSe,cutBoundary,dateStr,stockYTicker,stockXTicker,betaPlot);
+                    closeReason = obj.closedPairStruct.closeReasonDescription{plotFlag};
+                    obj.plotOrderClose(currPairPnLSe(1:currPnLLoc),cutBoundary,dateStr,stockYTicker,stockXTicker,betaPlot,closeReason,pairOperate);
                 end
                 
             end
@@ -404,12 +411,13 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
     methods(Static)
         % 用于画出平仓时的图
         % FIXME: 画图的时候，要注意不要把currPairPnLSe后面全是0的地方画出来了！！
-        function plotOrderClose(currPairPnLSe,cutBoundary,dateStr,stockYTicker,stockXTicker,betaPlot)
+        function plotOrderClose(currPairPnLSe,cutBoundary,dateStr,stockYTicker,stockXTicker,betaPlot,closeReason,pairOperate)
+            
             seLen = length(currPairPnLSe);
             seXspace = 1:seLen;
             figure();
-            plot(squeeze(currPairPnLSe));
-            title(sprintf('%s long\n %s *%d*%s',dateStr,stockYTicker{1},betaPlot,stockXTicker{1}));
+            plot(0:seLen,[0,squeeze(currPairPnLSe)]);
+            title(sprintf('%s %s %s \n %s *%d*%s',closeReason,dateStr,pairOperate,stockYTicker{1},betaPlot,stockXTicker{1}));
             set(gca,'XLim',[0 seLen+2]);
             hold on
             x=0:0.01:seLen+2;
@@ -418,6 +426,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             plot(x,y1,'color','r','linewidth',2)
             plot(x,y2,'color','r','linewidth',2)
             plot(seXspace(end),currPairPnLSe(end),'.','MarkerSize',16);
+            plot(0,0,'.','MarkerSize',16);
             hold off
         end
     end
