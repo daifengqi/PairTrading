@@ -2,7 +2,9 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
     
     properties(GetAccess = public, SetAccess = public)
         % 每个元素都是2维的，记录每天每只股票的持仓情况
-        % 注意！！！所有的dateLoc，stockLoc都是对于obj.signal里面的sharedInformation和stockUniverse而言的
+        % 注意！！！
+        % TODO:所有的dateLoc，stockLoc都是对于obj.signal里面的sharedInformation和stockUniverse而言的
+        % 和obj.holdingStruct.orderPrice的length对齐的
         % 用于计算最终的PnL，NOTE: In order history, only the net positions of trades are saved,
         % where the details of individual pairs are discarded.
         holdingStruct;
@@ -38,6 +40,8 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
         startDateStr;
         endDateStr;
         sectorNum;
+        % 最多画10个图
+        maxNumPlot=10;
         
     end
     
@@ -52,25 +56,26 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             marketData = mclasses.staticMarketData.BasicMarketLoader.getInstance();
             generalData = marketData.getAggregatedDataStruct;
             orderPrice = generalData.stock.properties.(obj.orderPriceType);
-            numOfDate = obj.signalStruct.sharedInformation.numOfDate-obj.signalStruct.wr-obj.signalStruct.ws+1;
+            numOfDate = obj.signalStruct.sharedInformation.numOfDate;
             numOfStock = obj.signalStruct.stockUniverse.numOfStock;
             % 对于目前持有的pair（最多可以持有obj.maxNumOfPairs个）
             % 记录持有的信息，stockYOperate=1--> longPosition -1-->shortPosition
             % 为了方便obj.holdingStruct.position的计算
             obj.holdingPairStruct.description = {'pairID','openDateLoc','openDateNum','expectedReturn','stockYLoc','openPriceY','stockYPosition',...
-                'stockYOperate','stockXLoc','openPriceX','stockXPosition','stockXOperate','pariPnLSe'};
+                'stockYOperate','stockXLoc','openPriceX','stockXPosition','stockXOperate','pairPriceSe'};
             for i = 1:length(obj.holdingPairStruct.description)-1
                 obj.holdingPairStruct.(obj.holdingPairStruct.description{i})=zeros(obj.maxNumOfPairs,1);
             end
-            obj.holdingPairStruct.pariPnLSe = zeros(obj.maxNumOfPairs,obj.cutPeriod);
+            obj.holdingPairStruct.pairPriceSe = zeros(obj.maxNumOfPairs,obj.cutPeriod);
 %             obj.holdingPairStruct.pairInfoArr = zeros(obj.maxNumOfPairs,length(obj.holdingPairStruct.description));
             % 单纯记录每个股票的持仓情况，所有pair的加和，为了最后直接从holdingStruct得到orderList
             obj.holdingStruct.position = zeros(numOfDate,numOfStock);
-            obj.holdingStruct.orderPrice = orderPrice(obj.signalStruct.startDateLoc:obj.signalStruct.endDateLoc,...
+            obj.holdingStruct.orderPrice = orderPrice(obj.signalStruct.loadPriceStartDateLoc:obj.signalStruct.endDateLoc,...
                 obj.signalStruct.stockUniverse.stockLocList);
+            assert(length(obj.holdingStruct.position)==length(obj.holdingStruct.orderPrice),'obj.holdingStruct size' );
             % 记录已经close了的pair的info
             obj.closedPairStruct.description = {'pairID','openDateLoc','openDateNum','closeDateLoc','closeDateNum','stockYLoc','openPriceY','stockYPosition',...
-                'stockYOperate','stockXLoc','openPriceX','stockXPosition','stockXOperate','closeReason','pariPnLSe'};
+                'stockYOperate','stockXLoc','openPriceX','stockXPosition','stockXOperate','closeReason','pairPriceSe'};
             for i = 1:length(obj.closedPairStruct.description)
                 obj.closedPairStruct.(obj.closedPairStruct.description{i})=[];
             end
@@ -81,8 +86,10 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
         function [orderList, delayList] = generateOrders(obj,currDate)
             obj.currDate=currDate;
             % 计算一下最近的PnL，利用obj.holdingPairStruct+obj.currAvailableCapital
-            obj.currDateLoc = find(ismember(obj.signalStruct.sharedInformation.dateList(obj.signalStruct.wr+obj.signalStruct.ws:end),obj.currDate));
-            obj.updateHoldingPairPnL();
+            % 在signalStruct.sharedInformation.dateList中，真正的
+            % 起始位置是obj.signalStruct.wr+obj.signalStruct.ws-2
+            obj.currDateLoc = find(ismember(obj.signalStruct.sharedInformation.dateList,obj.currDate));
+            obj.updateHoldingPairPrice();
             % 开始调仓前，先看一下holdingPairStruct中有没有需要close的order
             % 更新holdingPairStruct（其实就是把close的部分移到closedPairStruct里面）
             % ！不用返回！这个结果的orderList
@@ -132,7 +139,6 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             signals = obj.signalStruct.signals;
             currOrderPrice = squeeze(obj.holdingStruct.orderPrice(obj.currDateLoc,:));
             tickerName = obj.signalStruct.stockUniverse.windTicker;
-            
             % 初筛是否valid（目前没用）
             currValidity = squeeze(signals.validity(obj.currDateLoc,:,:));
             % FIXME: debug完可以删除
@@ -256,7 +262,9 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
 
         end
         
-        function updateHoldingPairPnL(obj)
+        % 只更新pair的价格，价值的话要再乘以stockYPosition后看变化
+        % 第i个是持有了i天的price，openDate没有计算进去哈！！
+        function updateHoldingPairPrice(obj)
             % 获取当前的holdingPairStruct
             if isempty(find(obj.holdingPairStruct.pairID>0,1))
                 return
@@ -276,15 +284,17 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 stockXOperate = obj.holdingPairStruct.stockXOperate(pairRowLoc,1);
                 currPriceY = obj.holdingStruct.orderPrice(obj.currDateLoc,stockYLoc);
                 currPriceX = obj.holdingStruct.orderPrice(obj.currDateLoc,stockXLoc);
-                obj.holdingPairStruct.pariPnLSe(pairRowLoc,openPeirodGap) = ((currPriceY-openPriceY)*stockYOperate*stockYPosition+...
-                    (currPriceX-openPriceX)*stockXOperate*stockXPosition)/(abs(openPriceY*stockYPosition)+abs(openPriceX*stockXPosition));
+                obj.holdingPairStruct.pairPriceSe(pairRowLoc,openPeirodGap) = stockYOperate*currPriceY+stockXOperate*currPriceX*stockXPosition*stockYPosition;
             end
         end
+        
         % 每次开始前先check现有的持仓中有没有需要平仓的
         function checkHoldingPairToClosed(obj)
             % check obj.holdingPairStruct and see whether certain pair can
             % be closed by reason 
             % 获取当前的holdingPairStruct
+            % Attention:这里需要用currHoldingPairStruct，因为下面操作
+            % 可能会把obj.holdingPairStruct改动
             currHoldingPairStruct = obj.holdingPairStruct;
             if isempty(find(currHoldingPairStruct.pairID>0,1))
                 return
@@ -298,6 +308,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             % 3，cutPeriod：持有时期过长，强制平仓
             % 4，目前这个pair已经不是valid了，直接平仓（signal那边需要check计算）
             % TODO：检查4中的validity计算是否正确
+            
             currHoldingPairLoc = find(currHoldingPairStruct.pairID>0);
             for i = 1:length(currHoldingPairLoc)
                 pairRowLoc = currHoldingPairLoc(i);
@@ -318,27 +329,75 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     plotFlag = 4;
                 end
                 % 判断1和2
-                % 判断是long的话，
-                currPairPnLSe = currHoldingPairStruct.pariPnLSe(pairRowLoc,:);
-                tmp = find(currPairPnLSe);
-                currPnLLoc = tmp(end);
-                if currPairPnLSe(currPnLLoc) > obj.cutWin
+                % 计算出目前从regression开始的pairPriceSe，看最近的currPairPrice是否达到止盈止损
+                % 起始日期是：openDateLoc-obj.signalStruct.wr+1
+                % TODO：做了多余计算，有空简化一下
+                % openDateLoc就已经在pairPriceSe里面了，是第一个
+                % 所以取priceYSe的时候应该到openDateLoc+currPriceLoc-1（需要减去1）
+                % orderPrice的开始是从strategy的startDate开始的
+                % FIXME: dateLoc究竟是相对于那里的？？？
+%                 priceYSe = obj.holdingStruct.orderPrice(openDateLoc-obj.signalStruct.wr-obj.signalStruct.ws+2:openDateLoc+currPriceLoc-1,stockYLoc);
+%                 priceXSe = obj.holdingStruct.orderPrice(openDateLoc-obj.signalStruct.wr-obj.signalStruct.ws+2:openDateLoc+currPriceLoc-1,stockXLoc);
+                priceYSe = obj.holdingStruct.orderPrice(openDateLoc-obj.signalStruct.wr+1:obj.currDateLoc,stockYLoc);
+                priceXSe = obj.holdingStruct.orderPrice(openDateLoc-obj.signalStruct.wr+1:obj.currDateLoc,stockXLoc);
+                stockYPosition = currHoldingPairStruct.stockYPosition(pairRowLoc,1);
+                stockXPosition = currHoldingPairStruct.stockXPosition(pairRowLoc,1);
+                stockYOperate = currHoldingPairStruct.stockYOperate(pairRowLoc,1);
+                stockXOperate = currHoldingPairStruct.stockXOperate(pairRowLoc,1);
+                pairPriceSe = priceYSe*stockYPosition+stockYOperate*stockXOperate*priceXSe*stockXPosition;
+                pairCapital = abs(priceYSe(obj.signalStruct.wr)*stockYPosition)+abs(priceXSe(obj.signalStruct.wr)*stockXPosition);
+                openPairPrice = pairPriceSe(obj.signalStruct.wr);
+                currPairPrice = pairPriceSe(end);
+                cutWinPairPrice = openPairPrice+pairCapital*obj.cutWin*stockYOperate;
+                cutLossPairPrice = openPairPrice+pairCapital*obj.cutLoss*stockYOperate;
+                
+                if currPairPrice > cutWinPairPrice
                     obj.holdingPairToClosedPair(pairRowLoc,1);
                     plotFlag = 1;
                 end
-                if currPairPnLSe(currPnLLoc) < obj.cutLoss
+                if currPairPrice < cutLossPairPrice
                     obj.holdingPairToClosedPair(pairRowLoc,2);
                     plotFlag = 2;
                 end
                 % 判断是否需要画图
                 % 画出从openDate开始的PnL的图
-                if plotFlag > 0
-                    stockYTicker = obj.signalStruct.stockUniverse.windTicker(stockYLoc);
-                    stockXTicker = obj.signalStruct.stockUniverse.windTicker(stockXLoc);
+                % TODO: 每种情况都画两个图
+                if (plotFlag > 0) & (plotFlag < 4) & (obj.maxNumPlot > 0)
+
+                    if stockYOperate > 0
+                        pairOperate = 'long';
+                    else
+                        pairOperate = 'short';
+                    end
+                    stockYTicker = obj.signalStruct.stockUniverse.windTicker{stockYLoc};
+                    stockXTicker = obj.signalStruct.stockUniverse.windTicker{stockXLoc};
                     betaPlot = signals.sBeta(openDateLoc,stockYLoc,stockXLoc);
                     dateStr = datestr(obj.currDate,'yyyymmdd');
-                    cutBoundary = [obj.cutWin,obj.cutLoss];
-                    obj.plotOrderClose(currPairPnLSe(1:currPnLLoc),cutBoundary,dateStr,stockYTicker,stockXTicker,betaPlot,plotFlag,pairOperate);
+                    closeReasonStr = obj.closedPairStruct.closeReasonDescription{plotFlag};
+                    seLen = length(pairPriceSe);
+                    % 开始画图
+                    figure();
+                    plot(squeeze(pairPriceSe),'-k','MarkerSize',5);
+                    title(sprintf('%s %s %s \n %s *%.2f*%s',closeReasonStr,dateStr,pairOperate,...
+                        stockYTicker,betaPlot,stockXTicker));
+                    xlim auto
+                    ylim auto
+                    hold on
+                    x=0:0.01:seLen+2;
+                    % cutWin line
+                    y1=cutWinPairPrice*ones(1,length(x));
+                    % cutLoss line
+                    y2=cutLossPairPrice*ones(1,length(x));
+                    plot(x,y1,'--','color','r','linewidth',2);
+                    plot(x,y2,'--','color','g','linewidth',2);
+                    plot(seLen,currPairPrice,'^r','MarkerSize',3);
+                    plot(obj.signalStruct.wr,openPairPrice,'^b','MarkerSize',3);
+                    text(seLen-2,cutWinPairPrice,'cut win');
+                    text(seLen-2,cutLossPairPrice,'cut loss');
+                    xlim auto
+                    ylim auto
+                    hold off
+                    obj.maxNumPlot =obj.maxNumPlot -1;
                 end
                 
             end
@@ -361,7 +420,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 if strcmp(infoName, 'expectedReturn')
                     continue
                 end
-                % 选择按上下拼接，因为pairPnLSe是(1,obj.cutPeirod)的维度
+                % 选择按上下拼接，因为pairPriceSe是(1,obj.cutPeirod)的维度
                 obj.closedPairStruct.(infoName) = [obj.closedPairStruct.(infoName);infoValue];
                 obj.closedPairStruct.closeDateLoc = obj.currDateLoc;
                 obj.closedPairStruct.closeDateNum = obj.currDate;
@@ -399,28 +458,6 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
         end
         
        
-    end
-    
-    methods(Static)
-        % 用于画出平仓时的图
-        % FIXME: 画图的时候，要注意不要把currPairPnLSe后面全是0的地方画出来了！！
-        function plotOrderClose(currPairPnLSe,cutBoundary,dateStr,stockYTicker,stockXTicker,betaPlot,plotFlag,pairOperate)
-            closeReason = obj.closedPairStruct.closeReasonDescription{plotFlag};
-            seLen = length(currPairPnLSe);
-            seXspace = 1:seLen;
-            figure();
-            plot(squeeze(currPairPnLSe));
-            title(sprintf('%s %s %s \n %s *%d*%s',closeReason,dateStr,pairOperate,stockYTicker{1},betaPlot,stockXTicker{1}));
-            set(gca,'XLim',[0 seLen+2]);
-            hold on
-            x=0:0.01:seLen+2;
-            y1=cutBoundary(1)*ones(1,length(x));
-            y2=cutBoundary(2)*ones(1,length(x));
-            plot(x,y1,'color','r','linewidth',2)
-            plot(x,y2,'color','r','linewidth',2)
-            plot(seXspace(end),currPairPnLSe(end),'.','MarkerSize',16);
-            hold off
-        end
     end
     
 end

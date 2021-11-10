@@ -7,9 +7,13 @@ classdef PairTradingSignal < handle
        validRatio = 0.8;
        entryPointBoundaryDefault = 1.8;
        startDate;
+       % 这里的Loc是相对于2000多天而已
+       % 命名不是很好。。。
        startDateLoc;
        endDate;
        endDateLoc;
+       % 所有的数据date都是从loadPriceStartDateLoc:endDateLoc
+       loadPriceStartDateLoc;
        sharedInformation;
        stockUniverse;
        signals;
@@ -40,7 +44,9 @@ classdef PairTradingSignal < handle
            endDateLoc = tmp(end);
            obj.endDateLoc = endDateLoc;
            obj.endDate = allDates(endDateLoc);
-           loadPriceStartDateLoc = startDateLoc-obj.wr-obj.ws;
+           % 因为需要regression和smooth一共所需要的数据往前推
+           loadPriceStartDateLoc = startDateLoc-obj.wr-obj.ws+2;
+           obj.loadPriceStartDateLoc = loadPriceStartDateLoc;
            obj.sharedInformation.dateList = allDates(loadPriceStartDateLoc:endDateLoc);
            obj.sharedInformation.dateStrList = allDateStr(loadPriceStartDateLoc:endDateLoc,:);
            obj.sharedInformation.numOfDate = length(obj.sharedInformation.dateList);
