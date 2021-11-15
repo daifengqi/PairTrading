@@ -1,0 +1,59 @@
+strategy = 
+  PairTradingStrategy - 属性:
+
+             holdingStruct: [1×1 struct]
+              signalStruct: [1×1 PairTradingSignal]
+             maxNumOfPairs: 30
+         holdingPairStruct: [1×1 struct]
+          closedPairStruct: [1×1 struct]
+              recentPairID: []
+                gnOrderTmp: []
+                  currDate: []
+               currDateLoc: []
+                    cutWin: 0.0300
+                   cutLoss: -0.0300
+                 cutPeriod: 20
+              startDateStr: '20190510'
+                endDateStr: '20191010'
+                 sectorNum: 31
+                maxNumPlot: 20
+              capitalAvail: 5000000
+               capitalInit: 5000000
+                adjERratio: 2
+
+
+K>> strategy.signalStruct
+ans = 
+  PairTradingSignal - 属性:
+
+                 startDateStr: '20190510'
+                   endDateStr: '20191010'
+                           wr: 40
+                           ws: 20
+                   validRatio: 0.8000
+    entryPointBoundaryDefault: 1.8000
+                    startDate: 737555
+                 startDateLoc: 2029
+                      endDate: 737708
+                   endDateLoc: 2131
+        loadPriceStartDateLoc: 1971
+            sharedInformation: [1×1 struct]
+                stockUniverse: [1×1 struct]
+                      signals: [1×1 struct]
+                 calSignalTmp: [1×1 struct]
+
+K>> strategy.signalStruct.signals
+ans = 
+  包含以下字段的 struct:
+
+              validity: [161×20×20 double]
+        validForSmooth: [161×20×20 double]
+           dislocation: [161×20×20 double]
+        expectedReturn: [161×20×20 double]
+              halfLife: [161×20×20 double]
+    entryPointBoundary: [161×20×20 double]
+                  beta: [161×20×20 double]
+                 sBeta: [161×20×20 double]
+                    mu: [161×20×20 double]
+                 sigma: [161×20×20 double]
+              zScoreSe: [161×20×20×40 double]

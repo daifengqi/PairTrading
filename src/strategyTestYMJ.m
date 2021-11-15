@@ -17,7 +17,6 @@ director.initialize(initParameters);
 %% calculate signal
 
 %% register strategy
-
 strategy = PairTradingStrategy(director.rootAllocator ,'pairTradingProj1');
 strategyParameters = configParameter(strategy);
 % 设置参数
@@ -25,6 +24,8 @@ strategy.startDateStr = startDateStr;
 strategy.endDateStr = endDateStr;
 strategy.sectorNum = sectorNum;
 strategy.initialize(strategyParameters);
+disp(strategy.startDateStr);
+
 % 计算signal
 strategy.prepareFields();
 

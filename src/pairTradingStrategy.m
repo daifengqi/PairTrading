@@ -62,7 +62,8 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             % 对于目前持有的pair（最多可以持有obj.maxNumOfPairs个）
             % 记录持有的信息，stockYOperate=1--> longPosition -1-->shortPosition
             % 为了方便obj.holdingStruct.position的计算
-            obj.holdingPairStruct.description = {'pairID','openDateLoc','openDateNum','expectedReturn','stockYLoc','openPriceY','stockYPosition',...
+            obj.holdingPairStruct.description = {'pairID','openDateLoc','openDateNum','expectedReturn',...
+                'stockYLoc','openPriceY','stockYPosition',...
                 'stockYOperate','stockXLoc','openPriceX','stockXPosition','stockXOperate','pairPriceSe'};
             for i = 1:length(obj.holdingPairStruct.description)-1
                 obj.holdingPairStruct.(obj.holdingPairStruct.description{i})=zeros(obj.maxNumOfPairs,1);
@@ -75,8 +76,10 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 obj.signalStruct.stockUniverse.stockLocList);
             assert(length(obj.holdingStruct.position)==length(obj.holdingStruct.orderPrice),'obj.holdingStruct size' );
             % 记录已经close了的pair的info
-            obj.closedPairStruct.description = {'pairID','openDateLoc','openDateNum','closeDateLoc','closeDateNum','stockYLoc','openPriceY','stockYPosition',...
-                'stockYOperate','stockXLoc','openPriceX','stockXPosition','stockXOperate','closeReason','pairPriceSe'};
+            obj.closedPairStruct.description = {'pairID','openDateLoc','openDateNum',...
+                'closeDateLoc','closeDateNum','stockYLoc','openPriceY','stockYPosition',...
+                'stockYOperate','stockXLoc','openPriceX','stockXPosition',...
+                'stockXOperate','closeReason','pairPriceSe'};
             for i = 1:length(obj.closedPairStruct.description)
                 obj.closedPairStruct.(obj.closedPairStruct.description{i})=[];
             end
@@ -85,22 +88,24 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
         end
         
         function [orderList, delayList] = generateOrders(obj,currDate)
-            obj.currDate=currDate;
             % 计算一下最近的PnL，利用obj.holdingPairStruct+obj.currAvailableCapital
             % 在signalStruct.sharedInformation.dateList中，真正的
-            % 起始位置是obj.signalStruct.wr+obj.signalStruct.ws-2
+            % 起始位置是obj.signalStruct.wr+obj.signalStruct.ws-2    
+            obj.currDate=currDate;
             obj.currDateLoc = find(ismember(obj.signalStruct.sharedInformation.dateList,obj.currDate));
             obj.updateHoldingPairPrice();
+            
             % 开始调仓前，先看一下holdingPairStruct中有没有需要close的order
             % 更新holdingPairStruct（其实就是把close的部分移到closedPairStruct里面）
             % ！不用返回！这个结果的orderList
             % 直接在每天的最后根据holdingPairStruct得到一个新的holdindgStruct
             % 根据obj.holdindgStruct来确定最后的orderList
-            % 更新obj.capitalAvail
             obj.checkHoldingPairToClosed();
             orderList = [];
             delayList = [];
-            
+           
+
+            % 更新obj.capitalAvail            
             % TODO: currAvailableCapital = initCapital - usedCapital  
             numPairAvail = sum(obj.holdingPairStruct.pairID(:,1)==0);
             
@@ -120,7 +125,6 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             longAdjustOrder.price = obj.orderPriceType;
             longAdjustOrder.assetCode = LongCodes;
             longAdjustOrder.quantity = LongPosition;
-            
             orderList = [orderList, longAdjustOrder];
             delayList = [delayList, 1];
             % short side
@@ -129,7 +133,6 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             shortAdjustOrder.price = obj.orderPriceType;
             shortAdjustOrder.assetCode = ShortCodes;
             shortAdjustOrder.quantity = ShortPosition;
-            
             orderList = [orderList, shortAdjustOrder];
             delayList = [delayList, 1];
         end

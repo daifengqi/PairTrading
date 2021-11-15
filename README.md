@@ -22,3 +22,4 @@ a structure in Matlab which contains the following matrix
 - `entryPointBoundry`: compare it with `zScore`, if `zScore > entryPointBoundry`, for homework, we can think it's a `short signal` if `zScore < -entryPointBoundry`, we can think it's a `long signal`. We set it as 1.96 for all pairs (actually it can be different among pairs)
 - `alpha`: regression 
 - `beta`: regression
+
