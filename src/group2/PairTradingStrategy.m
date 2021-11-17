@@ -141,6 +141,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
         % 全部使用matrixCalculation
         % TODO：记录每个pair的详细信息
         function setOrder(obj,numPairAvail)
+            fprintf("current availabel capital is:");
             disp(obj.capitalAvail);
             signals = obj.signalStruct.signals;
             currOrderPrice = squeeze(obj.holdingStruct.orderPrice(obj.currDateLoc,:));
@@ -148,8 +149,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             % 初筛是否valid（目前没用）
             currValidity = squeeze(signals.validity(obj.currDateLoc,:,:));
             % FIXME: debug完可以删除
-            datestr(obj.currDate,'yyyymmdd')
-%             find(currValidity)
+            datestr(obj.currDate,'yyyymmdd');
             % 判断是否穿线
             currZscore = squeeze(signals.zScoreSe(obj.currDateLoc,:,:,:));
             currZscoreEnd = currZscore(:,:,end);
@@ -385,7 +385,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 % 判断是否需要画图
                 % 画出从openDate开始的PnL的图
                 % TODO: 每种情况都画两个图
-                if (plotFlag > 0) & (obj.maxNumPlot > 0)
+                if (plotFlag > 0) & (obj.maxNumPlot > 0) & (mod(currHoldingPairStruct.pairID(pairRowLoc,1),20)==1)
 
                     if stockYOperate > 0
                         pairOperate = 'long';
@@ -415,7 +415,6 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     y1=cutWinPairPrice*ones(1,length(x));
                     % cutLoss line
                     y2=cutLossPairPrice*ones(1,length(x));
-                    plot(squeeze(idealPriceSe),'-','MarkerSize',5);
                     plot(x,y1,'--','color','r','linewidth',2);
                     plot(x,y2,'--','color','g','linewidth',2);
                     plot(seLen,currPairPrice,'^r','MarkerSize',3);

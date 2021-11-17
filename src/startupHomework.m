@@ -14,7 +14,7 @@ set(groot, 'defaultFigurePaperPositionMode', 'auto')
 clear mclasses;
 
 %% path variables
-rootpath = fullfile('D:\02PHBS_G2\m1\SE\Proj\PairTrading\src');
+rootpath = fullfile('D:\02PHBS_G2\PHBS_m1\SE\Proj\PairTrading\src');
 addpath(fullfile(rootpath, 'sharedLibrary',  'utils'));
 addpath(genpath_exclude(rootpath, {'.git', '.ignore', 'data', 'results', 'serializedData', 'reports', 'doc', '+mclasses'}));
 
