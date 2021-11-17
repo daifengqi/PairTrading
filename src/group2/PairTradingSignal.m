@@ -203,7 +203,7 @@ classdef PairTradingSignal < handle
            % 不考虑capital吗？？？
            [mu,sigma,lambda] = obj.OU_Calibrate_LS(residualSe,1);
            zScoreSe = (residualSe-mu)/sigma;
-           dislocation = residualSe(end);
+           dislocation = abs(residualSe(end));
            capital = obj.calSignalTmp.priceY(end) + abs(obj.calSignalTmp.sBeta)*obj.calSignalTmp.priceX(end);
            halfLife = log(2)/lambda;
            expectedReturn = (dislocation/2*250)/(capital*halfLife);

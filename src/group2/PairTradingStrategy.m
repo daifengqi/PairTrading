@@ -141,7 +141,8 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
         % 全部使用matrixCalculation
         % TODO：记录每个pair的详细信息
         function setOrder(obj,numPairAvail)
-            fprintf("current availabel capital is:");
+            
+            fprintf("%s capitalAvail is:", datestr(obj.currDate,'yyyymmdd'));
             disp(obj.capitalAvail);
             signals = obj.signalStruct.signals;
             currOrderPrice = squeeze(obj.holdingStruct.orderPrice(obj.currDateLoc,:));
@@ -164,6 +165,22 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             currExpectdReturn = squeeze(signals.expectedReturn(obj.currDateLoc,:,:));
             currLongPairER = currExpectdReturn(currLongPairLoc);
             currShortPairER = currExpectdReturn(currShortPairLoc);
+            % 记录考虑了ER排序后真正long和short的pair的loc
+            currRealLongPairLoc = false(size(currLongPairLoc));
+            currRealShortPairLoc = false(size(currShortPairLoc));
+            
+            currLSPairLoc = currShortPairLoc | currLongPairLoc;
+            currLSPairER = currExpectdReturn(currLSPairLoc);
+            [~,currLSPairERRank] = sort(currLSPairER,'descend');
+            
+            for iRank = 1:min(length(currLSPairERRank),numPairAvail)
+                iER = currLSPairER(currLSPairERRank==iRank);
+                if any(currLongPairER==iER)
+                    currRealLongPairLoc(currExpectdReturn==iER) = true;
+                else
+                    currRealShortPairLoc(currExpectdReturn==iER) = true;
+                end
+            end
             
             currPairBeta = squeeze(signals.sBeta(obj.currDateLoc,:,:));
             perPairCapital = obj.capitalAvail/numPairAvail;
@@ -173,11 +190,11 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
             % 对于需要加入的long的pair
             % TODO：先按照ER排序后，根据numPairAvail定好需要加入的pair
             % 目前就最简单的方式，从longPair开始按顺序加进去，直到加满位置（currPairCount记录）
-            [currLongPairYLoc,currLongPairXLoc] = find(currLongPairLoc);
+            [currLongPairYLoc,currLongPairXLoc] = find(currRealLongPairLoc);
             if ~isempty(currLongPairYLoc)
                 currLongPairYPrice = currOrderPrice(currLongPairYLoc)';
                 currLongPairXPrice = currOrderPrice(currLongPairXLoc)';
-                currLongPairXBeta = currPairBeta(currLongPairLoc);
+                currLongPairXBeta = currPairBeta(currRealLongPairLoc);
                 currLongPairPrice = currLongPairYPrice+abs(currLongPairXBeta).*currLongPairXPrice;
                 targetLongPairPosition = floor(perPairCapital*0.85 /currLongPairPrice /100)*100;
                 targetLongPairPositionLoc = find(targetLongPairPosition);
@@ -185,6 +202,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     % 更新pairID，计算各种postion和ticker
                     currPairCount = currPairCount+1;
                     if currPairCount > numPairAvail
+                        fprintf("currPairCount > numPairAvail");
                         break
                     end
                     pairIDrecent = pairIDrecent + 1;
@@ -223,17 +241,18 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                 
             end
             % 同理对于short的pair一样的操作
-            [currShortPairYLoc,currShortPairXLoc] = find(currShortPairLoc);
+            [currShortPairYLoc,currShortPairXLoc] = find(currRealShortPairLoc);
             if ~isempty(currShortPairYLoc)
                 currShortPairYPrice = currOrderPrice(currShortPairYLoc)';
                 currShortPairXPrice = currOrderPrice(currShortPairXLoc)';
-                currShortPairXBeta = currPairBeta(currShortPairLoc);
+                currShortPairXBeta = currPairBeta(currRealShortPairLoc);
                 currShortPairPrice = currShortPairYPrice+abs(currShortPairXBeta).*currShortPairXPrice;
                 targetShortPairPosition = floor(perPairCapital*0.85 /currShortPairPrice /100)*100;
                 targetShortPairPositionLoc = find(targetShortPairPosition);
                 for i = 1:length(targetShortPairPositionLoc)
                     currPairCount = currPairCount+1;
                     if currPairCount > numPairAvail
+                        fprintf("currPairCount > numPairAvail");
                         break
                     end
                     % 更新pairID，计算各种postion和ticker
@@ -405,7 +424,7 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     figure();
                     plot(squeeze(pairPriceSe),'-k','MarkerSize',5);
                     
-                    title(sprintf('%s %s %s \n %s *%.2f*%s',closeReasonStr,dateStr,pairOperate,...
+                    title(sprintf('%s %s %s \n %s %.2f*%s',closeReasonStr,dateStr,pairOperate,...
                         stockYTicker,betaPlot,stockXTicker));
                     xlim auto
                     ylim auto
@@ -432,8 +451,8 @@ classdef PairTradingStrategy<mclasses.strategy.LFBaseStrategy
                     
         
         
-        function adjustOrder(obj,currAvailableCapital)
-            
+        function adjustOrder(obj)
+            fprintf("%s TODO",datestr(obj.currDate,'yyyymmdd'));
         end
         
         % 输入pair在obj.holdingPairStruct的位置pairRowLoc，以及平仓的原因序号
