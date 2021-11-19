@@ -1,8 +1,11 @@
 # **Software Engineering Project**
 
+[![made-with-matlab](https://img.shields.io/badge/Made%20with-MATLAB-ff3300.svg)](https://ww2.mathworks.cn/products/matlab.html)
+
+
 # 📈 Pair Strategy
 
-Credits to [@Lethe Ye](https://github.com/lethe-ye) who writes most of the codes 👏.
+Credit to [@Lethe Ye](https://github.com/lethe-ye). She writes most of the codes 👏.
 
 **1.**   **Overview**
 
